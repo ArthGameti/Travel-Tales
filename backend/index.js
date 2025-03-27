@@ -1,4 +1,3 @@
-// File: backend/travel-tales/server.js
 require("dotenv").config();
 
 const express = require("express");
@@ -478,12 +477,39 @@ app.get("/get-all-user-all-story", authenticateToken, async (req, res) => {
     // Fetch all stories and populate the userId field with user details
     const travelStories = await TravelStory.find()
       .populate("userId", "fullName email") // Populate userId with fullName and email
-      .sort({ createdOn: -1 }); // Sort by creation date (newest first)
+      .sort({ createdOn: -1 });
 
     return res.status(200).json({ error: false, stories: travelStories });
   } catch (error) {
     console.error("Error in /get-all-user-all-story:", error);
     return res.status(500).json({ error: true, message: "Server error" });
+  }
+});
+
+// Route to search stories across all users
+app.get("/search-all-stories", authenticateToken, async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res
+        .status(400)
+        .json({ error: true, message: "Query parameter is required" });
+    }
+
+    // Search stories by title, story, or visitedLocation (case-insensitive)
+    const stories = await Story.find({
+      $or: [
+        { title: { $regex: query, $options: "i" } },
+        { story: { $regex: query, $options: "i" } },
+        { visitedLocation: { $regex: query, $options: "i" } },
+      ],
+    }).populate("userId", "fullName email"); // Populate userId with user details
+
+    res.status(200).json({ error: false, stories });
+  } catch (error) {
+    console.error("Error in /search-all-stories:", error);
+    res.status(500).json({ error: true, message: "Server error" });
   }
 });
 

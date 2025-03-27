@@ -6,4 +6,25 @@
 - create-user API
 - Login API
 - Get-user Api
-- 
+-
+
+Which API Do what
+
+User Routes:
+/create-account: Still works (creates a new user).
+/login: Still works (logs in a user and returns a token).
+/get-user: Still works (fetches user details for the authenticated user).
+Image Routes:
+/image-upload: Still works (uploads an image and returns the URL).
+/delete-image: Still works (deletes an image file).
+Story Routes (Now Under /travel-stories):
+/travel-stories/add-travel-story: Still works (adds a new story for the authenticated user).
+/travel-stories/get-all-stories: Still works (fetches all stories for the authenticated user).
+/travel-stories/edit-story/:id: Still works (edits a story if the user is the owner).
+/travel-stories/delete-story/:id: Still works (deletes a story if the user is the owner).
+/travel-stories/update-is-fav/:id: Still works (toggles the favorite status of a story).
+/travel-stories/search-stories: Still works (searches stories for the authenticated user; updated from /search).
+/travel-stories/filter: Still works (filters stories for the authenticated user by date range).
+/travel-stories/get-all-user-all-story: Still works (fetches all stories from all users).
+/travel-stories/search-all-stories: Now works (searches stories across all users; fixed path and model reference).
+/travel-stories/filter-all: Newly added (filters stories across all users by date range).

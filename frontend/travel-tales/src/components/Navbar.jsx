@@ -1,10 +1,9 @@
-// File: frontend/travel-tales/src/components/Navbar.jsx
+// File: src/components/Navbar.jsx
 // Renders the navigation bar with search, filter, and user info
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
-import { FaSearch, FaBars, FaTimes, FaFilter } from "react-icons/fa";
-import { toast } from "react-toastify";
+import { FaSearch, FaBars, FaTimes, FaFilter, FaUndo } from "react-icons/fa";
 
 const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,7 +14,9 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
 
   // Select API based on current route
   const isAllStoriesPage = location.pathname === "/all-stories";
-  const searchApi = isAllStoriesPage ? "/search-all-stories" : "/search";
+  const searchApi = isAllStoriesPage
+    ? "/travel-stories/search-all-stories" // Updated to match backend route
+    : "/search-stories";
   const filterApi = isAllStoriesPage
     ? "/travel-stories/filter-all"
     : "/travel-stories/filter";
@@ -26,7 +27,7 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   // Handle search by query
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      onSearch([]);
+      onSearch([], null); // Reset search if query is empty
       return;
     }
     try {
@@ -34,16 +35,14 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
         params: { query: searchQuery },
       });
       if (!response.data.error) {
-        onSearch(response.data.stories);
+        onSearch(response.data.stories, null);
       } else {
         console.error("Search error:", response.data.message);
-        toast.error("Failed to search stories: " + response.data.message);
-        onSearch([]);
+        onSearch([], response.data.message || "Failed to search stories.");
       }
     } catch (error) {
       console.error("Error searching stories:", error);
-      toast.error("Error searching stories: " + error.message);
-      onSearch([]);
+      onSearch([], error.message || "Error searching stories.");
     }
   };
 
@@ -57,15 +56,13 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   // Handle filter by date range
   const handleFilter = async () => {
     if (!startDate || !endDate) {
-      toast.warn("Please select both start and end dates.");
-      onSearch([]);
+      onSearch([], "Please select both start and end dates.");
       return;
     }
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (end < start) {
-      toast.error("End date cannot be before start date.");
-      onSearch([]);
+      onSearch([], "End date cannot be before start date.");
       return;
     }
     try {
@@ -73,18 +70,23 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
         params: { startDate, endDate },
       });
       if (!response.data.error) {
-        onSearch(response.data.stories);
-        toast.success("Stories filtered successfully!");
+        onSearch(response.data.stories, null);
       } else {
         console.error("Filter error:", response.data.message);
-        toast.error("Failed to filter stories: " + response.data.message);
-        onSearch([]);
+        onSearch([], response.data.message || "Failed to filter stories.");
       }
     } catch (error) {
       console.error("Error filtering stories:", error);
-      toast.error("Error filtering stories: " + error.message);
-      onSearch([]);
+      onSearch([], error.message || "Error filtering stories.");
     }
+  };
+
+  // Reset search and filter inputs
+  const handleReset = () => {
+    setSearchQuery("");
+    setStartDate("");
+    setEndDate("");
+    onSearch([], null);
   };
 
   return (
@@ -140,7 +142,7 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
             </button>
           </div>
 
-          {/* Date Range Inputs with Filter Icon */}
+          {/* Date Range Inputs with Filter and Reset Buttons */}
           <div className="flex items-center gap-2">
             <input
               type="date"
@@ -160,6 +162,13 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
             >
               <FaFilter />
               <span className="hidden sm:inline">Filter</span>
+            </button>
+            <button
+              onClick={handleReset}
+              className="px-3 py-2 bg-zinc-700 text-zinc-300 rounded-md border border-zinc-700 hover:bg-zinc-600 hover:scale-105 transition-all duration-200 flex items-center gap-1"
+            >
+              <FaUndo />
+              <span className="hidden sm:inline">Reset</span>
             </button>
           </div>
         </div>
@@ -278,7 +287,7 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
               </button>
             </div>
 
-            {/* Mobile Date Range Inputs with Filter Icon */}
+            {/* Mobile Date Range Inputs with Filter and Reset Buttons */}
             <div className="flex flex-col gap-2 w-full">
               <input
                 type="date"
@@ -292,13 +301,22 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
                 onChange={(e) => setEndDate(e.target.value)}
                 className="px-3 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200 w-full"
               />
-              <button
-                onClick={handleFilter}
-                className="px-3 py-2 bg-rose-500 text-white rounded-md border border-rose-500 hover:bg-rose-600 hover:scale-105 transition-all duration-200 flex items-center justify-center gap-1"
-              >
-                <FaFilter />
-                <span>Filter</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleFilter}
+                  className="flex-1 px-3 py-2 bg-rose-500 text-white rounded-md border border-rose-500 hover:bg-rose-600 hover:scale-105 transition-all duration-200 flex items-center justify-center gap-1"
+                >
+                  <FaFilter />
+                  <span>Filter</span>
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="flex-1 px-3 py-2 bg-zinc-700 text-zinc-300 rounded-md border border-zinc-700 hover:bg-zinc-600 hover:scale-105 transition-all duration-200 flex items-center justify-center gap-1"
+                >
+                  <FaUndo />
+                  <span>Reset</span>
+                </button>
+              </div>
             </div>
 
             {/* Mobile User Info */}

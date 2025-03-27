@@ -42,7 +42,7 @@ const AllTravelStories = () => {
       if (response.data?.user) setUserInfo(response.data.user);
     } catch (error) {
       console.error("Error fetching user info:", error);
-      if (error.response?.status === 401) handleLogout();
+      if (error.status === 401) handleLogout();
     }
   };
 
@@ -63,7 +63,9 @@ const AllTravelStories = () => {
       }
     } catch (error) {
       console.error("Error fetching all user stories:", error);
-      setError("Failed to load travel stories. Please try again.");
+      setError(
+        error.message || "Failed to load travel stories. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -123,20 +125,34 @@ const AllTravelStories = () => {
   };
 
   // Handle search/filter results from Navbar
-  const handleSearch = (searchResults) => {
+  const handleSearch = (searchResults, errorMessage) => {
+    if (errorMessage) {
+      setError(errorMessage);
+      setFilteredStories(allStories); // Reset to all stories on error
+      return;
+    }
+
     if (searchResults.length === 0) {
       setFilteredStories(allStories);
+      setError(null);
     } else {
-      const formattedResults = searchResults.map((story) => ({
-        ...story,
-        isFavorite: story.isFavorite ?? false,
-        date: moment(story.visitedDate).format("DD MMM YYYY"),
-      }));
-      setFilteredStories(formattedResults);
+      try {
+        const formattedResults = searchResults.map((story) => ({
+          ...story,
+          isFavorite: story.isFavorite ?? false,
+          date: moment(story.visitedDate).format("DD MMM YYYY"),
+        }));
+        setFilteredStories(formattedResults);
+        setError(null);
+      } catch (error) {
+        console.error("Error formatting search/filter results:", error);
+        setError("Failed to apply search/filter. Please try again.");
+      }
     }
   };
 
-  const selectedStory = filteredStories.find(
+  // Find selected story from allStories to avoid issues with filtered results
+  const selectedStory = allStories.find(
     (story) => story._id === openDetailsModal.storyId
   );
 
@@ -173,8 +189,8 @@ const AllTravelStories = () => {
                       story={item.story}
                       visitedLocation={item.visitedLocation}
                       isFavourite={item.isFavorite}
-                      userId={item.userId?._id} // Pass story owner's ID
-                      currentUserId={userInfo?._id} // Pass authenticated user's ID
+                      userId={item.userId?._id}
+                      currentUserId={userInfo?._id}
                       onFavouriteClick={() =>
                         toggleFavourite(item._id, item.isFavorite)
                       }
@@ -202,7 +218,7 @@ const AllTravelStories = () => {
         }}
         className="w-[90vw] md:w-[50%] h-[85vh] bg-zinc-800 rounded-lg mx-auto mt-8 sm:mt-10 p-4 sm:p-6 overflow-y-auto"
       >
-        {selectedStory && (
+        {selectedStory ? (
           <StoryDetailsModal
             story={selectedStory}
             onClose={() =>
@@ -211,8 +227,10 @@ const AllTravelStories = () => {
             onFavouriteClick={() =>
               toggleFavourite(selectedStory._id, selectedStory.isFavorite)
             }
-            currentUserId={userInfo?._id} // Pass authenticated user's ID
+            currentUserId={userInfo?._id}
           />
+        ) : (
+          <p className="text-zinc-400 text-center">Story not found.</p>
         )}
       </Modal>
     </div>
