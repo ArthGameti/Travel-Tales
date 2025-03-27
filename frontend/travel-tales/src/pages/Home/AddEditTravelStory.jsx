@@ -1,5 +1,7 @@
-// File: src/components/pages/AddEditTravelStory.jsx
+// File: src/pages/AddEditTravelStory.jsx
+// Form to add or edit a travel story with image upload
 import React, { useState } from "react";
+import axiosInstance from "../../utils/axiosInstance";
 import {
   MdAdd,
   MdClose,
@@ -8,10 +10,8 @@ import {
   MdFavorite,
   MdFavoriteBorder,
 } from "react-icons/md";
-import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "react-toastify";
 
-// Component to add or edit a travel story with dark theme and responsive design
 const AddEditTravelStory = ({
   storyInfo,
   type,
@@ -139,9 +139,7 @@ const AddEditTravelStory = ({
   };
 
   return (
-    // Form container with dark background and responsive padding
     <div className="p-4 sm:p-6 bg-zinc-800 shadow-md rounded-lg text-zinc-300">
-      {/* Header with title and close button */}
       <div className="flex items-center justify-between mb-4">
         <h5 className="text-lg sm:text-xl font-medium text-zinc-100">
           {type === "add" ? "Add Travel Story" : "Update Travel Story"}
@@ -153,10 +151,7 @@ const AddEditTravelStory = ({
           <MdClose className="text-xl" />
         </button>
       </div>
-
-      {/* Form inputs */}
       <div className="space-y-3">
-        {/* Title input */}
         <input
           type="text"
           placeholder="Title"
@@ -164,8 +159,6 @@ const AddEditTravelStory = ({
           onChange={(e) => setTitle(e.target.value)}
           className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded-md text-zinc-300 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200"
         />
-
-        {/* Visited location input */}
         <input
           type="text"
           placeholder="Visited Location"
@@ -173,32 +166,24 @@ const AddEditTravelStory = ({
           onChange={(e) => setVisitedLocation(e.target.value)}
           className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded-md text-zinc-300 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200"
         />
-
-        {/* Visited date input */}
         <input
           type="date"
           value={visitedDate}
           onChange={(e) => setVisitedDate(e.target.value)}
           className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded-md text-zinc-300 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200"
         />
-
-        {/* Story textarea */}
         <textarea
           placeholder="Write your travel story..."
           value={story}
           onChange={(e) => setStory(e.target.value)}
           className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded-md text-zinc-300 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-rose-500 h-24 transition-all duration-200"
         />
-
-        {/* Image upload input */}
         <input
           type="file"
           accept="image/*"
           onChange={handleFileChange}
           className="w-full text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-zinc-600 file:text-zinc-300 file:hover:bg-zinc-500 file:transition-all file:duration-200"
         />
-
-        {/* Image preview */}
         {preview && (
           <img
             src={preview}
@@ -207,10 +192,7 @@ const AddEditTravelStory = ({
           />
         )}
       </div>
-
-      {/* Action buttons */}
       <div className="flex items-center gap-3 mt-4">
-        {/* Submit button (Add/Update) */}
         <button
           className="flex items-center gap-1 text-xs font-medium bg-rose-500 text-white px-3 py-2 rounded-md shadow-md hover:bg-rose-600 hover:scale-105 disabled:bg-rose-300 disabled:scale-100 transition-all duration-200"
           onClick={handleSubmit}
@@ -227,10 +209,8 @@ const AddEditTravelStory = ({
             ? "Add Story"
             : "Update Story"}
         </button>
-
         {type === "edit" && (
           <>
-            {/* Delete button */}
             <button
               className="flex items-center gap-1 text-xs font-medium bg-red-500 text-white px-3 py-2 rounded-md shadow-md hover:bg-red-600 hover:scale-105 disabled:bg-red-300 disabled:scale-100 transition-all duration-200"
               onClick={handleDelete}
@@ -239,8 +219,7 @@ const AddEditTravelStory = ({
               <MdDelete className="text-lg" />
               Delete Story
             </button>
-
-            {/* Favorite toggle button */}
+            {/* Favorite toggle button (visible only to story owner) */}
             <button
               className={`flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-md shadow-md transition-all duration-200 ${
                 isFavorite

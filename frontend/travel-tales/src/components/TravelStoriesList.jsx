@@ -1,17 +1,30 @@
 // File: src/components/TravelStoriesList.jsx
+// Displays a list of the user's travel stories with edit functionality
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../utils/axiosInstance";
 import TravelStoryCard from "./TravelStoryCard";
 import AddEditTravelStory from "./pages/AddEditTravelStory";
 import { toast } from "react-toastify";
 
-// Component to display a list of travel stories with dark theme and responsive design
 const TravelStoriesList = () => {
   const [stories, setStories] = useState([]);
   const [editStory, setEditStory] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
-  // Fetch all travel stories from the backend
+  // Fetch authenticated user's ID
+  const getUserInfo = async () => {
+    try {
+      const response = await axiosInstance.get("/get-user");
+      if (!response.data.error) {
+        setCurrentUserId(response.data.user._id);
+      }
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+    }
+  };
+
+  // Fetch all travel stories for the authenticated user
   const getAllTravelStories = async () => {
     setLoading(true);
     try {
@@ -28,8 +41,9 @@ const TravelStoriesList = () => {
     }
   };
 
-  // Load stories on component mount
+  // Load user info and stories on component mount
   useEffect(() => {
+    getUserInfo();
     getAllTravelStories();
   }, []);
 
@@ -75,22 +89,18 @@ const TravelStoriesList = () => {
   };
 
   return (
-    // Container for the stories grid with responsive padding
     <div className="bg-zinc-900 min-h-screen p-4 sm:p-6">
       {/* Stories grid with responsive columns */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {loading ? (
-          // Loading state
           <p className="text-zinc-400 text-center col-span-full">
             Loading stories...
           </p>
         ) : stories.length === 0 ? (
-          // No stories found state
           <p className="text-zinc-400 text-center col-span-full">
             No stories found.
           </p>
         ) : (
-          // Render travel story cards
           stories.map((story) => (
             <div
               key={story._id}
@@ -104,6 +114,8 @@ const TravelStoriesList = () => {
                 story={story.story}
                 visitedLocation={story.visitedLocation}
                 isFavourite={story.isFavorite}
+                userId={story.userId} // Pass userId for ownership check
+                currentUserId={currentUserId} // Pass current user ID
                 onFavouriteClick={() =>
                   handleFavouriteClick(story._id, story.isFavorite)
                 }

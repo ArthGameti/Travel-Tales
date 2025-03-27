@@ -1,3 +1,4 @@
+// File: backend/travel-tales/server.js
 require("dotenv").config();
 
 const express = require("express");
@@ -33,12 +34,14 @@ app.post("/create-account", async (req, res) => {
   try {
     const { fullName, email, password } = req.body;
 
+    // Validate required fields
     if (!fullName || !email || !password) {
       return res
         .status(400)
         .json({ error: true, message: "All fields are required" });
     }
 
+    // Check if user already exists
     const isUser = await User.findOne({ email });
     if (isUser) {
       return res
@@ -46,6 +49,7 @@ app.post("/create-account", async (req, res) => {
         .json({ error: true, message: "User already exists" });
     }
 
+    // Hash the password and create a new user
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({
       fullName,
@@ -54,6 +58,7 @@ app.post("/create-account", async (req, res) => {
     });
     await user.save();
 
+    // Generate JWT token for authentication
     const accessToken = jwt.sign(
       { userId: user._id },
       process.env.ACCESS_TOKEN_SECRET,
@@ -79,22 +84,26 @@ app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    // Validate required fields
     if (!email || !password) {
       return res
         .status(400)
         .json({ message: "Email and Password are required" });
     }
 
+    // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
 
+    // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    // Generate JWT token for authentication
     const accessToken = jwt.sign(
       { userId: user._id },
       process.env.ACCESS_TOKEN_SECRET,
@@ -120,6 +129,7 @@ app.get("/get-user", authenticateToken, async (req, res) => {
   try {
     const { userId } = req.user;
 
+    // Fetch user details by ID
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: true, message: "User not found" });
@@ -139,6 +149,7 @@ app.get("/get-user", authenticateToken, async (req, res) => {
 // Upload Image
 app.post("/image-upload", upload.single("image"), async (req, res) => {
   try {
+    // Check if an image was uploaded
     if (!req.file) {
       return res
         .status(400)
@@ -157,12 +168,14 @@ app.delete("/delete-image", async (req, res) => {
   try {
     const { imageUrl } = req.query;
 
+    // Validate imageUrl parameter
     if (!imageUrl) {
       return res
         .status(400)
         .json({ error: true, message: "ImageUrl Parameter is required" });
     }
 
+    // Delete the image file from the server
     const filename = path.basename(imageUrl);
     const filepath = path.join(__dirname, "uploads", filename);
     if (fs.existsSync(filepath)) {
@@ -189,6 +202,7 @@ app.post(
       const { title, story, visitedLocation, visitedDate } = req.body;
       const { userId } = req.user;
 
+      // Validate required fields
       if (!title || !story || !visitedLocation || !visitedDate || !req.file) {
         return res.status(400).json({
           error: true,
@@ -196,6 +210,7 @@ app.post(
         });
       }
 
+      // Validate date format
       const parsedVisitedDate = new Date(visitedDate);
       if (isNaN(parsedVisitedDate.getTime())) {
         return res
@@ -205,11 +220,12 @@ app.post(
 
       const imageUrl = `http://localhost:8000/uploads/${req.file.filename}`;
 
+      // Create a new travel story
       const travelStory = new TravelStory({
         title,
         story,
         visitedLocation,
-        userId,
+        userId, // Associate the story with the authenticated user
         imageUrl,
         visitedDate: parsedVisitedDate,
       });
@@ -228,14 +244,15 @@ app.post(
   }
 );
 
-// Get All Stories
+// Get All Stories (for the authenticated user)
 app.get("/get-all-stories", authenticateToken, async (req, res) => {
   try {
     const { userId } = req.user;
 
+    // Fetch all stories created by the authenticated user
     const travelStories = await TravelStory.find({ userId }).sort({
-      isFavorite: -1,
-      createdOn: -1,
+      isFavorite: -1, // Sort by favorite status (favorites first)
+      createdOn: -1, // Then by creation date (newest first)
     });
 
     return res.status(200).json({ error: false, stories: travelStories });
@@ -256,6 +273,7 @@ app.put(
       const { title, story, visitedDate, visitedLocation } = req.body;
       const { userId } = req.user;
 
+      // Validate required fields
       if (!title || !story || !visitedDate || !visitedLocation) {
         return res.status(400).json({
           error: true,
@@ -263,6 +281,7 @@ app.put(
         });
       }
 
+      // Validate date format
       const parsedVisitedDate = new Date(visitedDate);
       if (isNaN(parsedVisitedDate.getTime())) {
         return res
@@ -270,6 +289,7 @@ app.put(
           .json({ error: true, message: "Invalid date format" });
       }
 
+      // Prepare update data
       const updateData = {
         title,
         story,
@@ -277,6 +297,7 @@ app.put(
         visitedLocation,
       };
 
+      // If a new image is uploaded, delete the old image and update the URL
       if (req.file) {
         const oldStory = await TravelStory.findOne({ _id: id, userId });
         if (oldStory && oldStory.imageUrl) {
@@ -289,16 +310,19 @@ app.put(
         updateData.imageUrl = `http://localhost:8000/uploads/${req.file.filename}`;
       }
 
+      // Update the story only if the authenticated user is the owner
       const updatedStory = await TravelStory.findOneAndUpdate(
-        { _id: id, userId },
+        { _id: id, userId }, // Ensure the userId matches the authenticated user
         updateData,
         { new: true }
       );
 
       if (!updatedStory) {
-        return res
-          .status(404)
-          .json({ error: true, message: "Story not found" });
+        return res.status(404).json({
+          error: true,
+          message:
+            "Story not found or you are not authorized to edit this story",
+        });
       }
 
       return res.status(200).json({
@@ -319,14 +343,21 @@ app.delete("/delete-story/:id", authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { userId } = req.user;
 
+    // Find the story and ensure the authenticated user is the owner
     const travelStory = await TravelStory.findOne({ _id: id, userId });
 
     if (!travelStory) {
-      return res.status(404).json({ error: true, message: "Story not found" });
+      return res.status(404).json({
+        error: true,
+        message:
+          "Story not found or you are not authorized to delete this story",
+      });
     }
 
+    // Delete the story
     await TravelStory.deleteOne({ _id: id, userId });
 
+    // Delete the associated image file
     const filename = path.basename(travelStory.imageUrl);
     const filePath = path.join(__dirname, "uploads", filename);
 
@@ -349,9 +380,10 @@ app.put("/update-is-fav/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { isFavorite } = req.body;
-    const { userId } = req.user;
+    // const { userId } = req.user; // Not needed for ownership check
 
-    const travelStory = await TravelStory.findOne({ _id: id, userId });
+    // Find the story (no ownership check, as any user can toggle favorite status)
+    const travelStory = await TravelStory.findById(id);
 
     if (!travelStory) {
       return res
@@ -359,13 +391,14 @@ app.put("/update-is-fav/:id", authenticateToken, async (req, res) => {
         .json({ error: true, message: "Travel Story not found" });
     }
 
+    // Update the favorite status
     travelStory.isFavorite = isFavorite;
     await travelStory.save();
 
     return res.status(200).json({
       error: false,
       story: travelStory,
-      message: "Update successful",
+      message: "Favorite status updated successfully",
     });
   } catch (error) {
     console.error("Error in /update-is-fav:", error);
@@ -373,18 +406,20 @@ app.put("/update-is-fav/:id", authenticateToken, async (req, res) => {
   }
 });
 
-// Search Travel Stories
+// Search Travel Stories (for the authenticated user)
 app.get("/search", authenticateToken, async (req, res) => {
   try {
     const { query } = req.query;
     const { userId } = req.user;
 
+    // Validate query parameter
     if (!query) {
       return res
         .status(400)
         .json({ error: true, message: "Query is required" });
     }
 
+    // Search stories created by the authenticated user
     const searchResult = await TravelStory.find({
       userId,
       $or: [
@@ -401,12 +436,13 @@ app.get("/search", authenticateToken, async (req, res) => {
   }
 });
 
-// Filter Travel Stories by Date Range
+// Filter Travel Stories by Date Range (for the authenticated user)
 app.get("/travel-stories/filter", authenticateToken, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     const { userId } = req.user;
 
+    // Validate date parameters
     if (!startDate || !endDate) {
       return res.status(400).json({
         error: true,
@@ -423,6 +459,7 @@ app.get("/travel-stories/filter", authenticateToken, async (req, res) => {
         .json({ error: true, message: "Invalid date format. Use YYYY-MM-DD" });
     }
 
+    // Filter stories created by the authenticated user within the date range
     const stories = await TravelStory.find({
       userId,
       visitedDate: { $gte: start, $lte: end },
@@ -431,6 +468,21 @@ app.get("/travel-stories/filter", authenticateToken, async (req, res) => {
     return res.status(200).json({ error: false, stories });
   } catch (error) {
     console.error("Error in /travel-stories/filter:", error);
+    return res.status(500).json({ error: true, message: "Server error" });
+  }
+});
+
+// Get All Travel Stories from All Users
+app.get("/get-all-user-all-story", authenticateToken, async (req, res) => {
+  try {
+    // Fetch all stories and populate the userId field with user details
+    const travelStories = await TravelStory.find()
+      .populate("userId", "fullName email") // Populate userId with fullName and email
+      .sort({ createdOn: -1 }); // Sort by creation date (newest first)
+
+    return res.status(200).json({ error: false, stories: travelStories });
+  } catch (error) {
+    console.error("Error in /get-all-user-all-story:", error);
     return res.status(500).json({ error: true, message: "Server error" });
   }
 });

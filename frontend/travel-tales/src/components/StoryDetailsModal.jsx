@@ -1,4 +1,5 @@
 // File: src/components/StoryDetailsModal.jsx
+// Displays a modal with travel story details and action buttons
 import React from "react";
 import {
   FaEdit,
@@ -8,16 +9,21 @@ import {
   FaMapMarkerAlt,
 } from "react-icons/fa";
 
-// Modal component to display story details with dark theme and responsive design
 const StoryDetailsModal = ({
   story,
   onClose,
   onEditClick,
   onDeleteClick,
   onFavouriteClick,
+  currentUserId, // Add prop for authenticated user's ID
 }) => {
+  // Format visited date for display
+  const formattedDate = new Date(story.visitedDate).toLocaleDateString();
+
+  // Check if the authenticated user is the story's owner
+  const isOwner = currentUserId === story.userId?._id;
+
   return (
-    // Modal container with dark background and responsive padding
     <div className="bg-zinc-900 text-zinc-300 p-4 sm:p-6 rounded-lg shadow-lg max-w-lg w-full mx-4 sm:mx-auto">
       {/* Header with title and close button */}
       <div className="flex justify-between items-center mb-4">
@@ -40,7 +46,7 @@ const StoryDetailsModal = ({
       />
 
       {/* Story date */}
-      <p className="text-zinc-500 text-sm mb-2">{story.date}</p>
+      <p className="text-zinc-500 text-sm mb-2">{formattedDate}</p>
 
       {/* Story content */}
       <p className="text-zinc-400 text-sm sm:text-base mb-4">{story.story}</p>
@@ -55,6 +61,7 @@ const StoryDetailsModal = ({
 
       {/* Action buttons (favorite, edit, delete) */}
       <div className="flex justify-end gap-4">
+        {/* Favorite button (visible to all users) */}
         <button
           onClick={onFavouriteClick}
           className="text-yellow-500 hover:text-yellow-600 hover:scale-110 transition-all duration-200"
@@ -66,20 +73,26 @@ const StoryDetailsModal = ({
             <FaRegHeart className="text-xl" />
           )}
         </button>
-        <button
-          onClick={onEditClick}
-          className="text-blue-500 hover:text-blue-400 hover:scale-110 transition-all duration-200"
-          title="Edit Story"
-        >
-          <FaEdit className="text-xl" />
-        </button>
-        <button
-          onClick={onDeleteClick}
-          className="text-red-500 hover:text-red-600 hover:scale-110 transition-all duration-200"
-          title="Delete Story"
-        >
-          <FaTrash className="text-xl" />
-        </button>
+
+        {/* Edit and delete buttons (visible only to the story's owner) */}
+        {isOwner && (
+          <>
+            <button
+              onClick={onEditClick}
+              className="text-blue-500 hover:text-blue-400 hover:scale-110 transition-all duration-200"
+              title="Edit Story"
+            >
+              <FaEdit className="text-xl" />
+            </button>
+            <button
+              onClick={onDeleteClick}
+              className="text-red-500 hover:text-red-600 hover:scale-110 transition-all duration-200"
+              title="Delete Story"
+            >
+              <FaTrash className="text-xl" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

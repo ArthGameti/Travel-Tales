@@ -1,10 +1,10 @@
 // File: src/components/SignUp.jsx
+// Handles user signup with form validation
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import axiosInstance from "../../utils/axiosInstance";
 
-// SignUp component with dark theme and responsive design
 const SignUp = () => {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
@@ -38,11 +38,8 @@ const SignUp = () => {
         password,
       });
 
-      console.log("API Response:", response.data); // Debugging
-
       if (response.data && response.data.accessToken) {
         localStorage.setItem("token", response.data.accessToken);
-        console.log("Token Saved:", localStorage.getItem("token")); // Debugging
         navigate("/dashboard");
       } else {
         setError("Signup failed. Please try again.");
@@ -56,23 +53,15 @@ const SignUp = () => {
   };
 
   return (
-    // Full-screen container with dark background
     <div className="h-screen bg-zinc-900 flex items-center justify-center px-4 sm:px-6">
-      {/* Signup form container with dark theme */}
       <div className="w-full max-w-md bg-zinc-800 shadow-lg rounded-lg p-6 sm:p-8">
-        {/* Form title */}
         <h2 className="text-xl sm:text-2xl font-semibold text-center text-zinc-100 mb-6">
           Sign Up
         </h2>
-
-        {/* Error message */}
         {error && (
           <p className="text-red-500 text-sm text-center mb-4">{error}</p>
         )}
-
-        {/* Signup form */}
         <form onSubmit={handleSignup} className="space-y-4">
-          {/* Full Name input */}
           <div>
             <input
               type="text"
@@ -83,8 +72,6 @@ const SignUp = () => {
               required
             />
           </div>
-
-          {/* Email input */}
           <div>
             <input
               type="email"
@@ -95,7 +82,6 @@ const SignUp = () => {
               required
             />
           </div>
-
           {/* Password input with show/hide toggle */}
           <div className="relative">
             <input
@@ -113,19 +99,13 @@ const SignUp = () => {
               {showPassword ? <FaEyeSlash /> : <FaEye />}
             </span>
           </div>
-
-          {/* Signup button */}
           <button
             type="submit"
             className="w-full bg-rose-500 text-white py-2 rounded-md hover:bg-rose-600 hover:scale-105 transition-all duration-200"
           >
             Create Account
           </button>
-
-          {/* Separator */}
           <p className="text-center text-zinc-400">Or</p>
-
-          {/* Navigate to Login button */}
           <button
             type="button"
             className="w-full bg-zinc-600 text-zinc-300 py-2 rounded-md hover:bg-zinc-500 hover:scale-105 transition-all duration-200"

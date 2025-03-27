@@ -1,3 +1,5 @@
+// File: frontend/travel-tales/src/components/ProfileInfo.jsx
+// Displays user profile info and logout button
 import React from "react";
 
 const ProfileInfo = ({ userInfo, onLogOut }) => {
@@ -5,11 +7,12 @@ const ProfileInfo = ({ userInfo, onLogOut }) => {
     <div className="flex items-center justify-between gap-3 p-2 bg-gray-100 rounded-lg shadow-sm">
       {/* User Avatar & Name */}
       <div className="flex items-center gap-4">
+        {/* Show user's initial in avatar */}
         <div className="w-10 h-10 flex items-center justify-center bg-blue-500 text-white font-bold rounded-full">
-          {userInfo?.name?.charAt(0).toUpperCase() || "U"}
+          {userInfo?.fullName?.charAt(0).toUpperCase() || "U"}
         </div>
         <p className="text-sm font-medium text-gray-800">
-          {userInfo?.name || "User"}
+          {userInfo?.fullName || "User"}
         </p>
       </div>
 

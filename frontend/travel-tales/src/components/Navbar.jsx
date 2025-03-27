@@ -1,15 +1,26 @@
+// File: frontend/travel-tales/src/components/Navbar.jsx
+// Renders the navigation bar with search, filter, and user info
 import React, { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
-import { FaSearch, FaBars, FaTimes } from "react-icons/fa";
+import { FaSearch, FaBars, FaTimes, FaFilter } from "react-icons/fa";
+import { toast } from "react-toastify";
 
-// Navbar component with dark theme and responsive design
 const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const location = useLocation();
 
-  // Get user initial for display
+  // Select API based on current route
+  const isAllStoriesPage = location.pathname === "/all-stories";
+  const searchApi = isAllStoriesPage ? "/search-all-stories" : "/search";
+  const filterApi = isAllStoriesPage
+    ? "/travel-stories/filter-all"
+    : "/travel-stories/filter";
+
+  // Get user initial for avatar
   const userInitial = userInfo?.fullName?.charAt(0)?.toUpperCase() || "U";
 
   // Handle search by query
@@ -18,19 +29,20 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
       onSearch([]);
       return;
     }
-
     try {
-      const response = await axiosInstance.get("/search", {
+      const response = await axiosInstance.get(searchApi, {
         params: { query: searchQuery },
       });
       if (!response.data.error) {
         onSearch(response.data.stories);
       } else {
         console.error("Search error:", response.data.message);
+        toast.error("Failed to search stories: " + response.data.message);
         onSearch([]);
       }
     } catch (error) {
       console.error("Error searching stories:", error);
+      toast.error("Error searching stories: " + error.message);
       onSearch([]);
     }
   };
@@ -45,22 +57,32 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   // Handle filter by date range
   const handleFilter = async () => {
     if (!startDate || !endDate) {
+      toast.warn("Please select both start and end dates.");
       onSearch([]);
       return;
     }
-
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (end < start) {
+      toast.error("End date cannot be before start date.");
+      onSearch([]);
+      return;
+    }
     try {
-      const response = await axiosInstance.get("/travel-stories/filter", {
+      const response = await axiosInstance.get(filterApi, {
         params: { startDate, endDate },
       });
       if (!response.data.error) {
         onSearch(response.data.stories);
+        toast.success("Stories filtered successfully!");
       } else {
         console.error("Filter error:", response.data.message);
+        toast.error("Failed to filter stories: " + response.data.message);
         onSearch([]);
       }
     } catch (error) {
       console.error("Error filtering stories:", error);
+      toast.error("Error filtering stories: " + error.message);
       onSearch([]);
     }
   };
@@ -69,10 +91,34 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
     <div className="bg-zinc-900 text-zinc-300 sticky top-0 z-20">
       {/* Desktop Navbar */}
       <div className="hidden sm:flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-700">
-        {/* App Name */}
-        <h1 className="text-2xl sm:text-3xl font-[cursive] tracking-wide shrink-0 hover:text-rose-500 transition-colors duration-200">
-          Travel-Tales
-        </h1>
+        {/* App Name and Navigation */}
+        <div className="flex items-center gap-4">
+          <Link to="/dashboard">
+            <h1 className="text-2xl sm:text-3xl font-[cursive] tracking-wide shrink-0 hover:text-rose-500 transition-colors duration-200">
+              Travel-Tales
+            </h1>
+          </Link>
+          <Link
+            to="/dashboard"
+            className={`text-sm font-medium transition-colors duration-200 ${
+              location.pathname === "/dashboard"
+                ? "text-rose-500"
+                : "text-zinc-400 hover:text-rose-500"
+            }`}
+          >
+            My Stories
+          </Link>
+          <Link
+            to="/all-stories"
+            className={`text-sm font-medium transition-colors duration-200 ${
+              location.pathname === "/all-stories"
+                ? "text-rose-500"
+                : "text-zinc-400 hover:text-rose-500"
+            }`}
+          >
+            All Stories
+          </Link>
+        </div>
 
         {/* Search and Filter Section */}
         <div className="flex flex-row items-center w-full sm:w-auto max-w-2xl sm:flex-1 my-0 mx-4 gap-2 sm:gap-3">
@@ -94,7 +140,7 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
             </button>
           </div>
 
-          {/* Date Range Inputs */}
+          {/* Date Range Inputs with Filter Icon */}
           <div className="flex items-center gap-2">
             <input
               type="date"
@@ -106,9 +152,15 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              onBlur={handleFilter}
               className="px-3 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200"
             />
+            <button
+              onClick={handleFilter}
+              className="px-3 py-2 bg-rose-500 text-white rounded-md border border-rose-500 hover:bg-rose-600 hover:scale-105 transition-all duration-200 flex items-center gap-1"
+            >
+              <FaFilter />
+              <span className="hidden sm:inline">Filter</span>
+            </button>
           </div>
         </div>
 
@@ -133,9 +185,33 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
 
       {/* Mobile Navbar with Hamburger Menu */}
       <div className="sm:hidden flex items-center justify-between px-4 py-3 border-b border-zinc-700">
-        <h1 className="text-2xl font-[cursive] tracking-wide hover:text-rose-500 transition-colors duration-200">
-          Travel-Tales
-        </h1>
+        <div className="flex items-center gap-4">
+          <Link to="/dashboard">
+            <h1 className="text-2xl font-[cursive] tracking-wide hover:text-rose-500 transition-colors duration-200">
+              Travel-Tales
+            </h1>
+          </Link>
+          <Link
+            to="/dashboard"
+            className={`text-sm font-medium transition-colors duration-200 ${
+              location.pathname === "/dashboard"
+                ? "text-rose-500"
+                : "text-zinc-400 hover:text-rose-500"
+            }`}
+          >
+            My Stories
+          </Link>
+          <Link
+            to="/all-stories"
+            className={`text-sm font-medium transition-colors duration-200 ${
+              location.pathname === "/all-stories"
+                ? "text-rose-500"
+                : "text-zinc-400 hover:text-rose-500"
+            }`}
+          >
+            All Stories
+          </Link>
+        </div>
         <button
           onClick={() => setIsMenuOpen(true)}
           className="text-zinc-300 hover:text-rose-500 hover:scale-110 transition-all duration-200"
@@ -148,9 +224,33 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
       {isMenuOpen && (
         <div className="sm:hidden flex flex-col items-start px-4 py-3 bg-zinc-900 border-b border-zinc-700 absolute top-0 left-0 w-full z-30">
           <div className="flex justify-between w-full mb-4">
-            <h1 className="text-2xl font-[cursive] tracking-wide hover:text-rose-500 transition-colors duration-200">
-              Travel-Tales
-            </h1>
+            <div className="flex items-center gap-4">
+              <Link to="/dashboard">
+                <h1 className="text-2xl font-[cursive] tracking-wide hover:text-rose-500 transition-colors duration-200">
+                  Travel-Tales
+                </h1>
+              </Link>
+              <Link
+                to="/dashboard"
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  location.pathname === "/dashboard"
+                    ? "text-rose-500"
+                    : "text-zinc-400 hover:text-rose-500"
+                }`}
+              >
+                My Stories
+              </Link>
+              <Link
+                to="/all-stories"
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  location.pathname === "/all-stories"
+                    ? "text-rose-500"
+                    : "text-zinc-400 hover:text-rose-500"
+                }`}
+              >
+                All Stories
+              </Link>
+            </div>
             <button
               onClick={() => setIsMenuOpen(false)}
               className="text-zinc-300 hover:text-rose-500 hover:scale-110 transition-all duration-200"
@@ -178,7 +278,7 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
               </button>
             </div>
 
-            {/* Mobile Date Range Inputs */}
+            {/* Mobile Date Range Inputs with Filter Icon */}
             <div className="flex flex-col gap-2 w-full">
               <input
                 type="date"
@@ -190,9 +290,15 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                onBlur={handleFilter}
                 className="px-3 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200 w-full"
               />
+              <button
+                onClick={handleFilter}
+                className="px-3 py-2 bg-rose-500 text-white rounded-md border border-rose-500 hover:bg-rose-600 hover:scale-105 transition-all duration-200 flex items-center justify-center gap-1"
+              >
+                <FaFilter />
+                <span>Filter</span>
+              </button>
             </div>
 
             {/* Mobile User Info */}

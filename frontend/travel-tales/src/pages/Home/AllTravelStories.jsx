@@ -1,29 +1,23 @@
-// File: src/pages/Home.jsx
-// Displays user's travel stories with add/edit functionality
-import React, { useEffect, useState } from "react";
+// File: src/pages/Home/AllTravelStories.jsx
+// Displays travel stories from all users with search and filter
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../../components/Navbar";
 import axiosInstance from "../../utils/axiosInstance";
+import Navbar from "../../components/Navbar";
 import TravelStoryCard from "../../components/TravelStoryCard";
-import AddEditTravelStory from "./AddEditTravelStory";
 import StoryDetailsModal from "../../components/StoryDetailsModal";
 import moment from "moment";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { MdAdd } from "react-icons/md";
 import Modal from "react-modal";
 
-const Home = () => {
+const AllTravelStories = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [allStories, setAllStories] = useState([]);
+  const [filteredStories, setFilteredStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [openAddEditModel, setOpenAddEditModel] = useState({
-    isShown: false,
-    type: "add",
-    data: null,
-  });
   const [openDetailsModal, setOpenDetailsModal] = useState({
     isShown: false,
     storyId: null,
@@ -33,14 +27,8 @@ const Home = () => {
   useEffect(() => {
     Modal.setAppElement("#root");
     getUserInfo();
-    getAllTravelStories();
+    getAllUserStories();
   }, []);
-
-  // Handle user logout
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
 
   // Fetch user information
   const getUserInfo = async () => {
@@ -58,12 +46,12 @@ const Home = () => {
     }
   };
 
-  // Fetch all travel stories for the user
-  const getAllTravelStories = async () => {
+  // Fetch all stories from all users
+  const getAllUserStories = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axiosInstance.get("/get-all-stories");
+      const response = await axiosInstance.get("/get-all-user-all-story");
       if (response.data?.stories) {
         const formattedStories = response.data.stories.map((story) => ({
           ...story,
@@ -71,19 +59,31 @@ const Home = () => {
           date: moment(story.visitedDate).format("DD MMM YYYY"),
         }));
         setAllStories(formattedStories);
+        setFilteredStories(formattedStories);
       }
     } catch (error) {
-      console.error("Error fetching travel stories:", error);
+      console.error("Error fetching all user stories:", error);
       setError("Failed to load travel stories. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
+
   // Toggle favorite status of a story
   const toggleFavourite = async (id, currentFavStatus) => {
     try {
       setAllStories((prevStories) =>
+        prevStories.map((story) =>
+          story._id === id ? { ...story, isFavorite: !currentFavStatus } : story
+        )
+      );
+      setFilteredStories((prevStories) =>
         prevStories.map((story) =>
           story._id === id ? { ...story, isFavorite: !currentFavStatus } : story
         )
@@ -109,6 +109,11 @@ const Home = () => {
           story._id === id ? { ...story, isFavorite: currentFavStatus } : story
         )
       );
+      setFilteredStories((prevStories) =>
+        prevStories.map((story) =>
+          story._id === id ? { ...story, isFavorite: currentFavStatus } : story
+        )
+      );
     }
   };
 
@@ -117,51 +122,21 @@ const Home = () => {
     setOpenDetailsModal({ isShown: true, storyId: id });
   };
 
-  // Handle edit button click from story details modal
-  const handleEditClick = (story) => {
-    setOpenDetailsModal({ isShown: false, storyId: null });
-    setOpenAddEditModel({ isShown: true, type: "edit", data: story });
-  };
-
-  // Handle delete button click from story details modal
-  const handleDeleteClick = async (id) => {
-    if (!window.confirm("Do you really want to delete this story?")) return;
-
-    try {
-      const response = await axiosInstance.delete(`/delete-story/${id}`);
-      if (!response.data.error) {
-        setAllStories((prevStories) =>
-          prevStories.filter((story) => story._id !== id)
-        );
-        setOpenDetailsModal({ isShown: false, storyId: null });
-        toast.success("Story deleted successfully!", {
-          position: "top-right",
-          autoClose: 2000,
-        });
-      } else {
-        throw new Error(response.data.message || "Delete failed");
-      }
-    } catch (error) {
-      console.error("Error deleting story:", error);
-      toast.error("Failed to delete story. Please try again.");
-    }
-  };
-
-  // Handle search results from Navbar
+  // Handle search/filter results from Navbar
   const handleSearch = (searchResults) => {
     if (searchResults.length === 0) {
-      getAllTravelStories();
+      setFilteredStories(allStories);
     } else {
       const formattedResults = searchResults.map((story) => ({
         ...story,
         isFavorite: story.isFavorite ?? false,
         date: moment(story.visitedDate).format("DD MMM YYYY"),
       }));
-      setAllStories(formattedResults);
+      setFilteredStories(formattedResults);
     }
   };
 
-  const selectedStory = allStories.find(
+  const selectedStory = filteredStories.find(
     (story) => story._id === openDetailsModal.storyId
   );
 
@@ -176,7 +151,7 @@ const Home = () => {
       <div className="container mx-auto py-8 sm:py-10 px-4 sm:px-6 flex justify-center">
         <div className="w-full max-w-5xl">
           <h1 className="text-xl sm:text-2xl font-semibold text-zinc-100 text-center mb-6">
-            Explore Travel Stories
+            All Travel Stories
           </h1>
           {loading ? (
             <p className="text-zinc-400 text-center">Loading stories...</p>
@@ -184,8 +159,8 @@ const Home = () => {
             <p className="text-red-500 text-center">{error}</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-              {allStories.length > 0 ? (
-                allStories.map((item) => (
+              {filteredStories.length > 0 ? (
+                filteredStories.map((item) => (
                   <div
                     key={item._id}
                     className="transform hover:scale-105 transition-all duration-200"
@@ -198,14 +173,12 @@ const Home = () => {
                       story={item.story}
                       visitedLocation={item.visitedLocation}
                       isFavourite={item.isFavorite}
-                      userId={item.userId} // Pass story owner's ID
+                      userId={item.userId?._id} // Pass story owner's ID
                       currentUserId={userInfo?._id} // Pass authenticated user's ID
                       onFavouriteClick={() =>
                         toggleFavourite(item._id, item.isFavorite)
                       }
                       onCardClick={handleCardClick}
-                      onEditClick={() => handleEditClick(item)}
-                      onDeleteClick={() => handleDeleteClick(item._id)}
                     />
                   </div>
                 ))
@@ -218,26 +191,6 @@ const Home = () => {
           )}
         </div>
       </div>
-      {/* Add & Edit Travel Story Modal */}
-      <Modal
-        isOpen={openAddEditModel.isShown}
-        onRequestClose={() =>
-          setOpenAddEditModel({ isShown: false, type: "add", data: null })
-        }
-        style={{
-          overlay: { backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 999 },
-        }}
-        className="w-[90vw] sm:w-[80vw] md:w-[40%] h-[80vh] bg-zinc-800 rounded-lg mx-auto mt-10 sm:mt-14 p-4 sm:p-5 overflow-y-auto"
-      >
-        <AddEditTravelStory
-          type={openAddEditModel.type}
-          storyInfo={openAddEditModel.data}
-          onClose={() =>
-            setOpenAddEditModel({ isShown: false, type: "add", data: null })
-          }
-          getAllTravelStories={getAllTravelStories}
-        />
-      </Modal>
       {/* Story Details Modal */}
       <Modal
         isOpen={openDetailsModal.isShown}
@@ -255,8 +208,6 @@ const Home = () => {
             onClose={() =>
               setOpenDetailsModal({ isShown: false, storyId: null })
             }
-            onEditClick={() => handleEditClick(selectedStory)}
-            onDeleteClick={() => handleDeleteClick(selectedStory._id)}
             onFavouriteClick={() =>
               toggleFavourite(selectedStory._id, selectedStory.isFavorite)
             }
@@ -264,18 +215,8 @@ const Home = () => {
           />
         )}
       </Modal>
-      {/* Floating Add Button */}
-      <button
-        className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-full bg-rose-500 fixed right-6 sm:right-10 bottom-6 sm:bottom-10 cursor-pointer shadow-lg hover:bg-rose-600 hover:scale-110 transition-all duration-200"
-        onClick={() =>
-          setOpenAddEditModel({ isShown: true, type: "add", data: null })
-        }
-      >
-        <MdAdd className="text-2xl sm:text-[32px] text-white" />
-      </button>
-      <ToastContainer />
     </div>
   );
 };
 
-export default Home;
+export default AllTravelStories;
