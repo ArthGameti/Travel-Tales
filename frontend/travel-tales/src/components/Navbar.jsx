@@ -15,8 +15,8 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   // Select API based on current route
   const isAllStoriesPage = location.pathname === "/all-stories";
   const searchApi = isAllStoriesPage
-    ? "/travel-stories/search-all-stories" // Updated to match backend route
-    : "/search-stories";
+    ? "/travel-stories/search-all-stories"
+    : "/travel-stories/search-stories"; // Updated to match backend route
   const filterApi = isAllStoriesPage
     ? "/travel-stories/filter-all"
     : "/travel-stories/filter";
@@ -31,6 +31,8 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
       return;
     }
     try {
+      // Log the searchApi for debugging
+      console.log("Using searchApi:", searchApi);
       const response = await axiosInstance.get(searchApi, {
         params: { query: searchQuery },
       });

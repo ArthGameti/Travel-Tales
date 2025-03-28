@@ -406,7 +406,7 @@ app.put("/update-is-fav/:id", authenticateToken, async (req, res) => {
 });
 
 // Search Travel Stories (for the authenticated user)
-app.get("/search", authenticateToken, async (req, res) => {
+app.get("/travel-stories/search-stories", authenticateToken, async (req, res) => {
   try {
     const { query } = req.query;
     const { userId } = req.user;
@@ -428,9 +428,12 @@ app.get("/search", authenticateToken, async (req, res) => {
       ],
     }).sort({ isFavorite: -1 });
 
+    // Log the request for debugging
+    console.log(`Search request received for user ${userId} with query: ${query}`);
+
     return res.status(200).json({ error: false, stories: searchResult });
   } catch (error) {
-    console.error("Error in /search:", error);
+    console.error("Error in /travel-stories/search-stories:", error);
     return res.status(500).json({ error: true, message: "Server error" });
   }
 });

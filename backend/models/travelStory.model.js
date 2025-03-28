@@ -22,7 +22,6 @@ const travelStorySchema = new mongoose.Schema({
     trim: true,
   },
   // Indicates if the story is marked as a favorite by the user
-  // This field allows any user to toggle the favorite status
   isFavorite: {
     type: Boolean,
     default: false,
