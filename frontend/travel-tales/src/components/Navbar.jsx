@@ -16,7 +16,7 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   const isAllStoriesPage = location.pathname === "/all-stories";
   const searchApi = isAllStoriesPage
     ? "/travel-stories/search-all-stories"
-    : "/travel-stories/search-stories"; // Updated to match backend route
+    : "/travel-stories/search-stories";
   const filterApi = isAllStoriesPage
     ? "/travel-stories/filter-all"
     : "/travel-stories/filter";
@@ -31,7 +31,6 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
       return;
     }
     try {
-      // Log the searchApi for debugging
       console.log("Using searchApi:", searchApi);
       const response = await axiosInstance.get(searchApi, {
         params: { query: searchQuery },
@@ -96,9 +95,9 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
       {/* Desktop Navbar */}
       <div className="hidden sm:flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-700">
         {/* App Name and Navigation */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           <Link to="/dashboard">
-            <h1 className="text-2xl sm:text-3xl font-[cursive] tracking-wide shrink-0 hover:text-rose-500 transition-colors duration-200">
+            <h1 className="text-2xl sm:text-3xl font-[cursive] tracking-wide hover:text-rose-500 transition-colors duration-200">
               Travel-Tales
             </h1>
           </Link>
@@ -125,16 +124,16 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
         </div>
 
         {/* Search and Filter Section */}
-        <div className="flex flex-row items-center w-full sm:w-auto max-w-2xl sm:flex-1 my-0 mx-4 gap-2 sm:gap-3">
+        <div className="flex-1 mx-4 flex items-center gap-2">
           {/* Search Bar */}
-          <div className="flex items-center w-full sm:flex-1">
+          <div className="flex items-center flex-1 max-w-xs">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search stories..."
-              className="flex-grow px-4 py-2 rounded-l-full bg-zinc-800 text-zinc-300 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-rose-500 placeholder-zinc-500 transition-all duration-200"
+              className="flex-grow px-4 py-2 rounded-l-full bg-zinc-800 text-zinc-300 border border-zinc-700 focus:outline-none placeholder-zinc-500 transition-all duration-200"
             />
             <button
               onClick={handleSearch}
@@ -145,18 +144,18 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
           </div>
 
           {/* Date Range Inputs with Filter and Reset Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-3 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200"
+              className="px-2 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200 w-32 text-sm"
             />
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="px-3 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200"
+              className="px-2 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all duration-200 w-32 text-sm"
             />
             <button
               onClick={handleFilter}
@@ -279,7 +278,7 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search stories..."
-                className="flex-grow px-4 py-2 rounded-l-full bg-zinc-800 text-zinc-300 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-rose-500 placeholder-zinc-500 transition-all duration-200"
+                className="flex-grow px-4 py-2 rounded-l-full bg-zinc-800 text-zinc-300 border border-zinc-700 focus:outline-none placeholder-zinc-500 transition-all duration-200"
               />
               <button
                 onClick={handleSearch}

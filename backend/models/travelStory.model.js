@@ -3,47 +3,46 @@ const mongoose = require("mongoose");
 
 // Define the TravelStory schema
 const travelStorySchema = new mongoose.Schema({
-  // Title of the travel story
   title: {
     type: String,
     required: true,
-    trim: true, // Removes whitespace from both ends
+    trim: true,
   },
-  // Main content of the travel story
   story: {
     type: String,
     required: true,
     trim: true,
   },
-  // Location visited in the travel story
   visitedLocation: {
     type: String,
     required: true,
     trim: true,
   },
-  // Indicates if the story is marked as a favorite by the user
   isFavorite: {
     type: Boolean,
     default: false,
   },
-  // Reference to the user who created the story
-  // This field is used to determine ownership for edit/delete permissions
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User", // References the User model
+    ref: "User",
     required: true,
   },
-  // Timestamp when the story was created
   createdOn: {
     type: Date,
     default: Date.now,
   },
-  // URL of the image associated with the story
-  imageUrl: {
-    type: String,
+  imageUrls: {
+    type: [String],
     required: true,
+    validate: {
+      validator: (array) => array.length > 0,
+      message: "At least one image URL is required",
+    },
   },
-  // Date when the user visited the location
+  videoUrl: {
+    type: String,
+    required: false,
+  },
   visitedDate: {
     type: Date,
     required: true,

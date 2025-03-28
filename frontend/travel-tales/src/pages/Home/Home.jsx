@@ -1,5 +1,4 @@
 // File: src/pages/Home.jsx
-// Displays user's travel stories with add/edit functionality
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar";
@@ -32,8 +31,24 @@ const Home = () => {
   // Fetch user info and stories on mount
   useEffect(() => {
     Modal.setAppElement("#root");
-    getUserInfo();
-    getAllTravelStories();
+
+    // Test connectivity to the backend
+    const checkConnectivity = async () => {
+      const isConnected = await axiosInstance.testConnectivity();
+      if (!isConnected) {
+        setError(
+          "Cannot connect to the server. Please ensure the backend is running."
+        );
+        setLoading(false);
+        return;
+      }
+
+      // If connected, proceed with fetching data
+      getUserInfo();
+      getAllTravelStories();
+    };
+
+    checkConnectivity();
   }, []);
 
   // Handle user logout
@@ -51,10 +66,15 @@ const Home = () => {
     }
     try {
       const response = await axiosInstance.get("/get-user");
-      if (response.data?.user) setUserInfo(response.data.user);
+      if (response.data?.user) {
+        setUserInfo(response.data.user);
+      } else {
+        throw new Error("User data not found.");
+      }
     } catch (error) {
       console.error("Error fetching user info:", error);
-      if (error.response?.status === 401) handleLogout();
+      setError("Failed to fetch user information. Please try again.");
+      if (error.status === 401) handleLogout();
     }
   };
 
@@ -71,10 +91,14 @@ const Home = () => {
           date: moment(story.visitedDate).format("DD MMM YYYY"),
         }));
         setAllStories(formattedStories);
+      } else {
+        throw new Error("No stories found.");
       }
     } catch (error) {
       console.error("Error fetching travel stories:", error);
-      setError("Failed to load travel stories. Please try again.");
+      setError(
+        "Failed to load travel stories. Please check your connection and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -181,7 +205,18 @@ const Home = () => {
           {loading ? (
             <p className="text-zinc-400 text-center">Loading stories...</p>
           ) : error ? (
-            <p className="text-red-500 text-center">{error}</p>
+            <div className="text-center">
+              <p className="text-red-500 mb-4">{error}</p>
+              <button
+                onClick={() => {
+                  getUserInfo();
+                  getAllTravelStories();
+                }}
+                className="px-4 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600"
+              >
+                Retry
+              </button>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
               {allStories.length > 0 ? (
@@ -192,14 +227,14 @@ const Home = () => {
                   >
                     <TravelStoryCard
                       id={item._id}
-                      imageUrl={item.imageUrl}
+                      imageUrl={item.imageUrls}
                       title={item.title}
                       date={item.date}
                       story={item.story}
                       visitedLocation={item.visitedLocation}
                       isFavourite={item.isFavorite}
-                      userId={item.userId} // Pass story owner's ID
-                      currentUserId={userInfo?._id} // Pass authenticated user's ID
+                      userId={item.userId}
+                      currentUserId={userInfo?._id}
                       onFavouriteClick={() =>
                         toggleFavourite(item._id, item.isFavorite)
                       }
@@ -260,7 +295,7 @@ const Home = () => {
             onFavouriteClick={() =>
               toggleFavourite(selectedStory._id, selectedStory.isFavorite)
             }
-            currentUserId={userInfo?._id} // Pass authenticated user's ID
+            currentUserId={userInfo?._id}
           />
         )}
       </Modal>

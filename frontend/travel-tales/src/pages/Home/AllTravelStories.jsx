@@ -1,5 +1,4 @@
 // File: src/pages/Home/AllTravelStories.jsx
-// Displays travel stories from all users with search and filter
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
@@ -42,7 +41,7 @@ const AllTravelStories = () => {
       if (response.data?.user) setUserInfo(response.data.user);
     } catch (error) {
       console.error("Error fetching user info:", error);
-      if (error.status === 401) handleLogout();
+      if (error.response?.status === 401) handleLogout();
     }
   };
 
@@ -57,6 +56,7 @@ const AllTravelStories = () => {
           ...story,
           isFavorite: story.isFavorite ?? false,
           date: moment(story.visitedDate).format("DD MMM YYYY"),
+          userId: story.userId?._id || story.userId, // Handle populated userId
         }));
         setAllStories(formattedStories);
         setFilteredStories(formattedStories);
@@ -128,7 +128,7 @@ const AllTravelStories = () => {
   const handleSearch = (searchResults, errorMessage) => {
     if (errorMessage) {
       setError(errorMessage);
-      setFilteredStories(allStories); // Reset to all stories on error
+      setFilteredStories(allStories);
       return;
     }
 
@@ -141,6 +141,7 @@ const AllTravelStories = () => {
           ...story,
           isFavorite: story.isFavorite ?? false,
           date: moment(story.visitedDate).format("DD MMM YYYY"),
+          userId: story.userId?._id || story.userId,
         }));
         setFilteredStories(formattedResults);
         setError(null);
@@ -183,13 +184,13 @@ const AllTravelStories = () => {
                   >
                     <TravelStoryCard
                       id={item._id}
-                      imageUrl={item.imageUrl}
+                      imageUrl={item.imageUrls} // Updated: Pass imageUrls array
                       title={item.title}
                       date={item.date}
                       story={item.story}
                       visitedLocation={item.visitedLocation}
                       isFavourite={item.isFavorite}
-                      userId={item.userId?._id}
+                      userId={item.userId}
                       currentUserId={userInfo?._id}
                       onFavouriteClick={() =>
                         toggleFavourite(item._id, item.isFavorite)

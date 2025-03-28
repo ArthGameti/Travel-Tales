@@ -1,5 +1,3 @@
-// File: src/components/TravelStoryCard.jsx
-// Renders a travel story card with favorite, edit, and delete options
 import React from "react";
 import {
   FaHeart,
@@ -11,7 +9,8 @@ import {
 
 const TravelStoryCard = ({
   id,
-  imageUrl,
+  imageUrl, // Now expects imageUrls array
+  videoUrl, // Add videoUrl prop
   title,
   date,
   story,
@@ -31,18 +30,58 @@ const TravelStoryCard = ({
   // Check if the authenticated user is the story's owner
   const isOwner = currentUserId === userId;
 
+  // Use the first image from imageUrls for the card preview
+  const displayImage =
+    Array.isArray(imageUrl) && imageUrl.length > 0 ? imageUrl[0] : null;
+
+  // Function to determine the MIME type based on video file extension
+  const getVideoType = (url) => {
+    if (!url) return "video/mp4"; // Default fallback
+    const ext = url.split(".").pop().toLowerCase();
+    switch (ext) {
+      case "mp4":
+        return "video/mp4";
+      case "mov":
+        return "video/quicktime";
+      case "webm":
+        return "video/webm";
+      case "mkv":
+        return "video/x-matroska";
+      default:
+        return "video/mp4";
+    }
+  };
+
   return (
     <div
       className="bg-zinc-800 rounded-2xl shadow-lg overflow-hidden cursor-pointer"
       onClick={() => onCardClick(id)}
     >
-      {/* Image section with action buttons */}
+      {/* Media section with action buttons */}
       <div className="relative">
-        <img
-          src={imageUrl}
-          alt={title}
-          className="w-full h-40 sm:h-52 object-cover"
-        />
+        {videoUrl ? (
+          // Display video if videoUrl exists
+          <video
+            controls
+            className="w-full h-40 sm:h-52 object-cover"
+            onError={(e) => console.error("Video playback error:", e)}
+          >
+            <source src={videoUrl} type={getVideoType(videoUrl)} />
+            Your browser does not support the video tag.
+          </video>
+        ) : displayImage ? (
+          // Fallback to image if no video
+          <img
+            src={displayImage}
+            alt={title}
+            className="w-full h-40 sm:h-52 object-cover"
+          />
+        ) : (
+          // Fallback if neither video nor image exists
+          <div className="w-full h-40 sm:h-52 bg-zinc-600 flex items-center justify-center">
+            <p className="text-zinc-400">No Media</p>
+          </div>
+        )}
         {/* Favorite button (visible to all users) */}
         <button
           className="absolute top-3 right-3 bg-zinc-900 rounded-full p-2 shadow-md hover:bg-zinc-700 hover:scale-110 transition-all duration-200"
