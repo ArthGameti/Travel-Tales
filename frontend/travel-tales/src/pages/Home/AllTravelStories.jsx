@@ -1,8 +1,8 @@
-// File: src/pages/Home/AllTravelStories.jsx
-import React, { useState, useEffect } from "react";
+// File: src/pages/AllTravelStories.jsx
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../../utils/axiosInstance";
 import Navbar from "../../components/Navbar";
+import axiosInstance from "../../utils/axiosInstance";
 import TravelStoryCard from "../../components/TravelStoryCard";
 import StoryDetailsModal from "../../components/StoryDetailsModal";
 import moment from "moment";
@@ -14,7 +14,6 @@ const AllTravelStories = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [allStories, setAllStories] = useState([]);
-  const [filteredStories, setFilteredStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openDetailsModal, setOpenDetailsModal] = useState({
@@ -25,9 +24,31 @@ const AllTravelStories = () => {
   // Fetch user info and stories on mount
   useEffect(() => {
     Modal.setAppElement("#root");
-    getUserInfo();
-    getAllUserStories();
+
+    // Test connectivity to the backend
+    const checkConnectivity = async () => {
+      const isConnected = await axiosInstance.testConnectivity();
+      if (!isConnected) {
+        setError(
+          "Cannot connect to the server. Please ensure the backend is running."
+        );
+        setLoading(false);
+        return;
+      }
+
+      // If connected, proceed with fetching data
+      getUserInfo();
+      getAllTravelStories();
+    };
+
+    checkConnectivity();
   }, []);
+
+  // Handle user logout
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
 
   // Fetch user information
   const getUserInfo = async () => {
@@ -38,54 +59,56 @@ const AllTravelStories = () => {
     }
     try {
       const response = await axiosInstance.get("/get-user");
-      if (response.data?.user) setUserInfo(response.data.user);
+      if (response.data?.user) {
+        setUserInfo(response.data.user);
+      } else {
+        throw new Error("User data not found.");
+      }
     } catch (error) {
       console.error("Error fetching user info:", error);
-      if (error.response?.status === 401) handleLogout();
+      setError("Failed to fetch user information. Please try again.");
+      if (error.status === 401) handleLogout();
     }
   };
 
-  // Fetch all stories from all users
-  const getAllUserStories = async () => {
+  // Fetch all travel stories from all users
+  const getAllTravelStories = async (filters = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axiosInstance.get("/get-all-user-all-story");
+      const { startDate, endDate } = filters;
+      const params = {};
+      if (startDate && endDate) {
+        params.startDate = startDate;
+        params.endDate = endDate;
+      }
+      const response = await axiosInstance.get("/get-all-user-all-story", {
+        params,
+      });
       if (response.data?.stories) {
         const formattedStories = response.data.stories.map((story) => ({
           ...story,
           isFavorite: story.isFavorite ?? false,
           date: moment(story.visitedDate).format("DD MMM YYYY"),
-          userId: story.userId?._id || story.userId, // Handle populated userId
         }));
         setAllStories(formattedStories);
-        setFilteredStories(formattedStories);
+      } else {
+        throw new Error("No stories found.");
       }
     } catch (error) {
-      console.error("Error fetching all user stories:", error);
+      console.error("Error fetching travel stories:", error);
       setError(
-        error.message || "Failed to load travel stories. Please try again."
+        "Failed to load travel stories. Please check your connection and try again."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
-
   // Toggle favorite status of a story
   const toggleFavourite = async (id, currentFavStatus) => {
     try {
       setAllStories((prevStories) =>
-        prevStories.map((story) =>
-          story._id === id ? { ...story, isFavorite: !currentFavStatus } : story
-        )
-      );
-      setFilteredStories((prevStories) =>
         prevStories.map((story) =>
           story._id === id ? { ...story, isFavorite: !currentFavStatus } : story
         )
@@ -111,11 +134,6 @@ const AllTravelStories = () => {
           story._id === id ? { ...story, isFavorite: currentFavStatus } : story
         )
       );
-      setFilteredStories((prevStories) =>
-        prevStories.map((story) =>
-          story._id === id ? { ...story, isFavorite: currentFavStatus } : story
-        )
-      );
     }
   };
 
@@ -124,35 +142,59 @@ const AllTravelStories = () => {
     setOpenDetailsModal({ isShown: true, storyId: id });
   };
 
-  // Handle search/filter results from Navbar
-  const handleSearch = (searchResults, errorMessage) => {
-    if (errorMessage) {
-      setError(errorMessage);
-      setFilteredStories(allStories);
-      return;
-    }
-
-    if (searchResults.length === 0) {
-      setFilteredStories(allStories);
-      setError(null);
-    } else {
-      try {
-        const formattedResults = searchResults.map((story) => ({
-          ...story,
-          isFavorite: story.isFavorite ?? false,
-          date: moment(story.visitedDate).format("DD MMM YYYY"),
-          userId: story.userId?._id || story.userId,
-        }));
-        setFilteredStories(formattedResults);
-        setError(null);
-      } catch (error) {
-        console.error("Error formatting search/filter results:", error);
-        setError("Failed to apply search/filter. Please try again.");
-      }
+  // Handle edit button click from story details modal
+  const handleEditClick = (story) => {
+    // Only the owner can edit the story, so redirect to the dashboard if it's the user's story
+    if (story.userId?._id === userInfo?._id) {
+      navigate("/dashboard", { state: { storyToEdit: story } });
     }
   };
 
-  // Find selected story from allStories to avoid issues with filtered results
+  // Handle delete button click from story details modal
+  const handleDeleteClick = async (id) => {
+    if (!window.confirm("Do you really want to delete this story?")) return;
+
+    try {
+      const response = await axiosInstance.delete(`/delete-story/${id}`);
+      if (!response.data.error) {
+        setAllStories((prevStories) =>
+          prevStories.filter((story) => story._id !== id)
+        );
+        setOpenDetailsModal({ isShown: false, storyId: null });
+        toast.success("Story deleted successfully!", {
+          position: "top-right",
+          autoClose: 2000,
+        });
+      } else {
+        throw new Error(response.data.message || "Delete failed");
+      }
+    } catch (error) {
+      console.error("Error deleting story:", error);
+      toast.error("Failed to delete story. Please try again.");
+    }
+  };
+
+  // Handle search and filter results from Navbar
+  const handleSearch = (searchResults, errorMessage, filters) => {
+    if (errorMessage) {
+      setError(errorMessage);
+      setAllStories([]);
+      return;
+    }
+
+    if (searchResults.length > 0) {
+      const formattedResults = searchResults.map((story) => ({
+        ...story,
+        isFavorite: story.isFavorite ?? false,
+        date: moment(story.visitedDate).format("DD MMM YYYY"),
+      }));
+      setAllStories(formattedResults);
+      setError(null);
+    } else {
+      getAllTravelStories(filters);
+    }
+  };
+
   const selectedStory = allStories.find(
     (story) => story._id === openDetailsModal.storyId
   );
@@ -173,29 +215,42 @@ const AllTravelStories = () => {
           {loading ? (
             <p className="text-zinc-400 text-center">Loading stories...</p>
           ) : error ? (
-            <p className="text-red-500 text-center">{error}</p>
+            <div className="text-center">
+              <p className="text-red-500 mb-4">{error}</p>
+              <button
+                onClick={() => {
+                  getUserInfo();
+                  getAllTravelStories();
+                }}
+                className="px-4 py-2 bg-rose-500 text-white rounded-md hover:bg-rose-600"
+              >
+                Retry
+              </button>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
-              {filteredStories.length > 0 ? (
-                filteredStories.map((item) => (
+              {allStories.length > 0 ? (
+                allStories.map((item) => (
                   <div
                     key={item._id}
                     className="transform hover:scale-105 transition-all duration-200"
                   >
                     <TravelStoryCard
                       id={item._id}
-                      imageUrl={item.imageUrls} // Updated: Pass imageUrls array
+                      imageUrl={item.imageUrls}
                       title={item.title}
                       date={item.date}
                       story={item.story}
                       visitedLocation={item.visitedLocation}
                       isFavourite={item.isFavorite}
-                      userId={item.userId}
+                      userId={item.userId?._id || item.userId}
                       currentUserId={userInfo?._id}
                       onFavouriteClick={() =>
                         toggleFavourite(item._id, item.isFavorite)
                       }
                       onCardClick={handleCardClick}
+                      onEditClick={() => handleEditClick(item)}
+                      onDeleteClick={() => handleDeleteClick(item._id)}
                     />
                   </div>
                 ))
@@ -219,21 +274,22 @@ const AllTravelStories = () => {
         }}
         className="w-[90vw] md:w-[50%] h-[85vh] bg-zinc-800 rounded-lg mx-auto mt-8 sm:mt-10 p-4 sm:p-6 overflow-y-auto"
       >
-        {selectedStory ? (
+        {selectedStory && (
           <StoryDetailsModal
             story={selectedStory}
             onClose={() =>
               setOpenDetailsModal({ isShown: false, storyId: null })
             }
+            onEditClick={() => handleEditClick(selectedStory)}
+            onDeleteClick={() => handleDeleteClick(selectedStory._id)}
             onFavouriteClick={() =>
               toggleFavourite(selectedStory._id, selectedStory.isFavorite)
             }
             currentUserId={userInfo?._id}
           />
-        ) : (
-          <p className="text-zinc-400 text-center">Story not found.</p>
         )}
       </Modal>
+      <ToastContainer />
     </div>
   );
 };

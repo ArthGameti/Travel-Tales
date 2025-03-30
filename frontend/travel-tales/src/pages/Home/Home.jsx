@@ -79,11 +79,17 @@ const Home = () => {
   };
 
   // Fetch all travel stories for the user
-  const getAllTravelStories = async () => {
+  const getAllTravelStories = async (filters = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axiosInstance.get("/get-all-stories");
+      const { startDate, endDate } = filters;
+      const params = {};
+      if (startDate && endDate) {
+        params.startDate = startDate;
+        params.endDate = endDate;
+      }
+      const response = await axiosInstance.get("/get-all-stories", { params });
       if (response.data?.stories) {
         const formattedStories = response.data.stories.map((story) => ({
           ...story,
@@ -171,17 +177,24 @@ const Home = () => {
     }
   };
 
-  // Handle search results from Navbar
-  const handleSearch = (searchResults) => {
-    if (searchResults.length === 0) {
-      getAllTravelStories();
-    } else {
+  // Handle search and filter results from Navbar
+  const handleSearch = (searchResults, errorMessage, filters) => {
+    if (errorMessage) {
+      setError(errorMessage);
+      setAllStories([]);
+      return;
+    }
+
+    if (searchResults.length > 0) {
       const formattedResults = searchResults.map((story) => ({
         ...story,
         isFavorite: story.isFavorite ?? false,
         date: moment(story.visitedDate).format("DD MMM YYYY"),
       }));
       setAllStories(formattedResults);
+      setError(null);
+    } else {
+      getAllTravelStories(filters);
     }
   };
 

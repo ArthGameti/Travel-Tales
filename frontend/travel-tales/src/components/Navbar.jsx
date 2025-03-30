@@ -17,9 +17,6 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   const searchApi = isAllStoriesPage
     ? "/travel-stories/search-all-stories"
     : "/travel-stories/search-stories";
-  const filterApi = isAllStoriesPage
-    ? "/travel-stories/filter-all"
-    : "/travel-stories/filter";
 
   // Get user initial for avatar
   const userInitial = userInfo?.fullName?.charAt(0)?.toUpperCase() || "U";
@@ -27,7 +24,9 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   // Handle search by query
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      onSearch([], null); // Reset search if query is empty
+      onSearch([], null, { searchQuery: "", startDate: "", endDate: "" }); // Reset search and filters if query is empty
+      setStartDate("");
+      setEndDate("");
       return;
     }
     try {
@@ -36,14 +35,28 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
         params: { query: searchQuery },
       });
       if (!response.data.error) {
-        onSearch(response.data.stories, null);
+        onSearch(response.data.stories, null, {
+          searchQuery,
+          startDate: "",
+          endDate: "",
+        });
+        setStartDate("");
+        setEndDate("");
       } else {
         console.error("Search error:", response.data.message);
-        onSearch([], response.data.message || "Failed to search stories.");
+        onSearch([], response.data.message || "Failed to search stories.", {
+          searchQuery,
+          startDate: "",
+          endDate: "",
+        });
       }
     } catch (error) {
       console.error("Error searching stories:", error);
-      onSearch([], error.message || "Error searching stories.");
+      onSearch([], error.message || "Error searching stories.", {
+        searchQuery,
+        startDate: "",
+        endDate: "",
+      });
     }
   };
 
@@ -55,31 +68,28 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
   };
 
   // Handle filter by date range
-  const handleFilter = async () => {
+  const handleFilter = () => {
     if (!startDate || !endDate) {
-      onSearch([], "Please select both start and end dates.");
+      onSearch([], "Please select both start and end dates.", {
+        searchQuery: "",
+        startDate: "",
+        endDate: "",
+      });
       return;
     }
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (end < start) {
-      onSearch([], "End date cannot be before start date.");
+      onSearch([], "End date cannot be before start date.", {
+        searchQuery: "",
+        startDate: "",
+        endDate: "",
+      });
       return;
     }
-    try {
-      const response = await axiosInstance.get(filterApi, {
-        params: { startDate, endDate },
-      });
-      if (!response.data.error) {
-        onSearch(response.data.stories, null);
-      } else {
-        console.error("Filter error:", response.data.message);
-        onSearch([], response.data.message || "Failed to filter stories.");
-      }
-    } catch (error) {
-      console.error("Error filtering stories:", error);
-      onSearch([], error.message || "Error filtering stories.");
-    }
+    // Pass the date filters to the parent component
+    onSearch([], null, { searchQuery: "", startDate, endDate });
+    setSearchQuery(""); // Clear search query when applying date filter
   };
 
   // Reset search and filter inputs
@@ -87,7 +97,7 @@ const Navbar = ({ userInfo, onLogOut, onSearch }) => {
     setSearchQuery("");
     setStartDate("");
     setEndDate("");
-    onSearch([], null);
+    onSearch([], null, { searchQuery: "", startDate: "", endDate: "" });
   };
 
   return (

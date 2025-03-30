@@ -306,7 +306,9 @@ app.post("/add-travel-story", authenticateToken, upload, async (req, res) => {
         if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
       }
     }
-    return res.status(500).json({ error: true, message: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ error: true, message: "Internal Server Error" });
   }
 });
 
@@ -314,9 +316,31 @@ app.post("/add-travel-story", authenticateToken, upload, async (req, res) => {
 app.get("/get-all-stories", authenticateToken, async (req, res) => {
   try {
     const { userId } = req.user;
+    const { startDate, endDate } = req.query;
+
+    // Build the query
+    let query = { userId };
+
+    // Add date filtering if startDate and endDate are provided
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (isNaN(start) || isNaN(end)) {
+        return res.status(400).json({
+          error: true,
+          message: "Invalid date format. Use YYYY-MM-DD",
+        });
+      }
+
+      query.visitedDate = {
+        $gte: start,
+        $lte: end,
+      };
+    }
 
     // Fetch all stories created by the authenticated user
-    const travelStories = await TravelStory.find({ userId }).sort({
+    const travelStories = await TravelStory.find(query).sort({
       isFavorite: -1,
       createdOn: -1,
     });
@@ -434,7 +458,9 @@ app.put("/edit-story/:id", authenticateToken, upload, async (req, res) => {
         if (fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
       }
     }
-    return res.status(500).json({ error: true, message: "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ error: true, message: "Internal Server Error" });
   }
 });
 
@@ -606,8 +632,31 @@ app.get("/travel-stories/filter", authenticateToken, async (req, res) => {
 // Read: Get All Travel Stories from All Users
 app.get("/get-all-user-all-story", authenticateToken, async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+
+    // Build the query
+    let query = {};
+
+    // Add date filtering if startDate and endDate are provided
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (isNaN(start) || isNaN(end)) {
+        return res.status(400).json({
+          error: true,
+          message: "Invalid date format. Use YYYY-MM-DD",
+        });
+      }
+
+      query.visitedDate = {
+        $gte: start,
+        $lte: end,
+      };
+    }
+
     // Fetch all stories and populate the userId field with user details
-    const travelStories = await TravelStory.find()
+    const travelStories = await TravelStory.find(query)
       .populate("userId", "fullName email")
       .sort({ createdOn: -1 });
 
